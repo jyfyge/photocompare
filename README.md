@@ -1,6 +1,14 @@
+<div align="center">
+
 # Photo Compare
 
 一个用于并排对比两张照片的 Android 应用（jyfyge fork）。
+
+[简体中文](README.md) · [English](README_EN.md)
+
+[GitHub](https://github.com/jyfyge/photocompare) · [酷安](https://www.coolapk.com/u/3222917)
+
+</div>
 
 ## 主要功能
 

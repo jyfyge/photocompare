@@ -1,6 +1,14 @@
+<div align="center">
+
 # Photo Compare
 
 An Android app for comparing two photos side by side (jyfyge fork).
+
+[简体中文](README.md) · [English](README_EN.md)
+
+[GitHub](https://github.com/jyfyge/photocompare) · [Coolapk](https://www.coolapk.com/u/3222917)
+
+</div>
 
 ## Features
 
