@@ -78,6 +78,15 @@ public class PhotoViewMediator {
         bottomView.setOnImageChangeListener(listener);
     }
 
+    /**
+     * Refresh both views' info text after asynchronous metadata detection completed.
+     * Must be called on the UI thread; implementations only read cached values.
+     */
+    public void refreshExifData() {
+        topView.refreshExifData();
+        bottomView.refreshExifData();
+    }
+
     public boolean isCheckboxesDarkMode() {
         return checkboxesDarkMode;
     }

@@ -55,4 +55,10 @@ public interface ImageDetailView {
     void setShowExif(boolean showExifDetails);
 
     void setOnImageChangeListener(OnImageChangeListener listener);
+
+    /**
+     * Re-read display metadata (such as the Ultra HDR flag) and refresh the info text.
+     * Safe to call from the UI thread; implementations must not perform heavy work.
+     */
+    void refreshExifData();
 }

@@ -206,5 +206,9 @@ public class PhotoViewMediatorTest {
         @Override
         public void setOnImageChangeListener(final OnImageChangeListener listener) {
         }
+
+        @Override
+        public void refreshExifData() {
+        }
     }
 }

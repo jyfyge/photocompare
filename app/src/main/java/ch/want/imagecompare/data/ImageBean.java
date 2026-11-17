@@ -37,6 +37,12 @@ public class ImageBean implements Parcelable {
 
     private boolean selected;
     private boolean initialForCompare;
+    /**
+     * Runtime-only cache for the Ultra HDR (gain map) detection result.
+     * {@code null} means "not checked yet". Not persisted in Parcel because it is
+     * derived display data that can be recomputed cheaply in the compare view.
+     */
+    private Boolean ultraHdr;
 
     public ImageBean(final String displayName, final Uri fileUri) {
         this.displayName = displayName;
@@ -149,6 +155,17 @@ public class ImageBean implements Parcelable {
 
     public void setInitialForCompare(final boolean initialForCompare) {
         this.initialForCompare = initialForCompare;
+    }
+
+    /**
+     * @return cached Ultra HDR detection result, or {@code null} if not checked yet.
+     */
+    public Boolean getUltraHdr() {
+        return ultraHdr;
+    }
+
+    public void setUltraHdr(final boolean ultraHdr) {
+        this.ultraHdr = ultraHdr;
     }
 
     @Override

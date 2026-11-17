@@ -206,6 +206,12 @@ public class ImageDetailViewImpl implements ImageDetailView {
         }
     }
 
+    @Override
+    public void refreshExifData() {
+        // Only re-read already-cached values; no decoding happens on the UI thread.
+        updateExifData();
+    }
+
     private SubsamplingScaleImageView getOnScreenPhotoView() {
         return getPhotoView(imageViewPager.getCurrentItem());
     }
@@ -249,13 +255,16 @@ public class ImageDetailViewImpl implements ImageDetailView {
                 imageHeight = exif.getAttributeInt(ExifInterface.TAG_PIXEL_Y_DIMENSION, 0);
             }
             final double megaPixel = (double) imageWidth * imageHeight / 1_000_000d;
-            exifData = String.format(Locale.ENGLISH, "%s: ƒ/%.2f %s %.0fmm ISO %s %.1fMP",//
+            final Boolean ultraHdr = getCurrentImageBean().getUltraHdr();
+            final String hdrTag = Boolean.TRUE.equals(ultraHdr) ? " [Ultra HDR]" : "";
+            exifData = String.format(Locale.ENGLISH, "%s: ƒ/%.2f %s %.0fmm ISO %s %.1fMP%s",//
                     imageFile.getName(), //
                     exif.getAttributeDouble(ExifInterface.TAG_F_NUMBER, 0d), //
                     formatShutterSpeed(exif.getAttributeDouble(ExifInterface.TAG_EXPOSURE_TIME, 0d)), //
                     exif.getAttributeDouble(ExifInterface.TAG_FOCAL_LENGTH, 0d), //
                     exif.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY),//
-                    megaPixel);
+                    megaPixel, //
+                    hdrTag);
         } catch (final IOException e) {
             exifData = e.getMessage();
         }

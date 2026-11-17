@@ -98,6 +98,8 @@ public class CompareImagesActivity extends AppCompatActivity {
     /**
      * Enable HDR rendering while at least one of the compared images is an Ultra HDR image.
      * Gain map detection decodes a small sample only, and always runs off the UI thread.
+     * The per-image result is cached in {@link ImageBean} so the info text can show the
+     * Ultra HDR label without ever decoding on the UI thread.
      */
     private void updateHdrColorMode() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
@@ -108,10 +110,14 @@ public class CompareImagesActivity extends AppCompatActivity {
         final int topIndex = photoViewMediator.getTopIndex();
         final int bottomIndex = photoViewMediator.getBottomIndex();
         imageLoaderExecutor.execute(() -> {
-            final boolean hdr = hasGainMapAt(images, topIndex) || hasGainMapAt(images, bottomIndex);
+            final boolean topHdr = hasGainMapAt(images, topIndex);
+            final boolean bottomHdr = hasGainMapAt(images, bottomIndex);
             runOnUiThread(() -> {
                 if (!isFinishing() && !isDestroyed()) {
-                    UltraHdrSupport.applyWindowColorMode(this, hdr);
+                    UltraHdrSupport.applyWindowColorMode(this, topHdr || bottomHdr);
+                    // The detection result just became available; refresh the parameter text
+                    // so the [Ultra HDR] label appears. Reading the cache is cheap.
+                    photoViewMediator.refreshExifData();
                 }
             });
         });
@@ -121,7 +127,14 @@ public class CompareImagesActivity extends AppCompatActivity {
         if (index < 0 || index >= images.size()) {
             return false;
         }
-        return UltraHdrSupport.hasGainMap(images.get(index).getImageFile());
+        final ImageBean imageBean = images.get(index);
+        final Boolean cached = imageBean.getUltraHdr();
+        if (cached != null) {
+            return cached;
+        }
+        final boolean hdr = UltraHdrSupport.hasGainMap(imageBean.getImageFile());
+        imageBean.setUltraHdr(hdr);
+        return hdr;
     }
 
     @Override
