@@ -129,6 +129,7 @@ class ImagePagerAdapter extends PagerAdapter {
         // "You must not call setTag() on a view Glide is targeting"
         photoView.setId(getPhotoViewId(position));
         photoView.setMinimumDpi(MINIMUM_DPI);
+        photoView.setBitmapDecoderFactory(UltraHdrImageDecoder::new);
         return photoView;
     }
 

@@ -1,6 +1,7 @@
 package ch.want.imagecompare.ui.compareimages;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,6 +25,7 @@ import ch.want.imagecompare.data.ImageBean;
 import ch.want.imagecompare.domain.FileImageMediaResolver;
 import ch.want.imagecompare.domain.PhotoComparePreferences;
 import ch.want.imagecompare.domain.PhotoViewMediator;
+import ch.want.imagecompare.domain.UltraHdrSupport;
 
 /**
  * @link https://www.androidauthority.com/how-to-build-an-image-gallery-app-718976/
@@ -41,6 +43,7 @@ public class CompareImagesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_compare_images);
         photoViewMediator = buildPhotoViewMediator();
+        photoViewMediator.setOnImageChangeListener(image -> updateHdrColorMode());
         initInitialState(savedInstanceState);
         initToolbar();
     }
@@ -86,9 +89,39 @@ public class CompareImagesActivity extends AppCompatActivity {
                 }
                 photoViewMediator.initGalleryImageList(allImageBeans, topImageIndex, bottomIndex);
                 syncToggle.setChecked(true);
+                updateHdrColorMode();
                 Optional.ofNullable(getSupportActionBar()).ifPresent(actionBar -> actionBar.setTitle(R.string.app_name));
             });
         });
+    }
+
+    /**
+     * Enable HDR rendering while at least one of the compared images is an Ultra HDR image.
+     * Gain map detection decodes a small sample only, and always runs off the UI thread.
+     */
+    private void updateHdrColorMode() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                || imageLoaderExecutor == null || imageLoaderExecutor.isShutdown()) {
+            return;
+        }
+        final List<ImageBean> images = photoViewMediator.getGalleryImageList();
+        final int topIndex = photoViewMediator.getTopIndex();
+        final int bottomIndex = photoViewMediator.getBottomIndex();
+        imageLoaderExecutor.execute(() -> {
+            final boolean hdr = hasGainMapAt(images, topIndex) || hasGainMapAt(images, bottomIndex);
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    UltraHdrSupport.applyWindowColorMode(this, hdr);
+                }
+            });
+        });
+    }
+
+    private static boolean hasGainMapAt(final List<ImageBean> images, final int index) {
+        if (index < 0 || index >= images.size()) {
+            return false;
+        }
+        return UltraHdrSupport.hasGainMap(images.get(index).getImageFile());
     }
 
     @Override

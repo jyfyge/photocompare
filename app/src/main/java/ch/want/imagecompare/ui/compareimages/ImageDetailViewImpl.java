@@ -39,6 +39,7 @@ public class ImageDetailViewImpl implements ImageDetailView {
     private static final int OFFSCREEN_PAGES_TO_KEEP = 1;
     private CrossViewEventHandler crossViewEventHandler;
     private final PanAndZoomStateHolder zoomPanMemorizer;
+    private ImageDetailView.OnImageChangeListener onImageChangeListener;
 
     /*
      * The imageViewPager holds the state of the currently shown image. It relies
@@ -76,6 +77,11 @@ public class ImageDetailViewImpl implements ImageDetailView {
     @Override
     public int getCurrentIndex() {
         return imageViewPager.getCurrentItem();
+    }
+
+    @Override
+    public void setOnImageChangeListener(final OnImageChangeListener listener) {
+        onImageChangeListener = listener;
     }
 
     @Override
@@ -129,6 +135,12 @@ public class ImageDetailViewImpl implements ImageDetailView {
 //        drawable = DrawableCompat.wrap(drawable);
 //        DrawableCompat.setTint(drawable, Color.LTGRAY);
         updateExifData();
+        if (onImageChangeListener != null && imageViewPagerAdapter != null) {
+            final int currentIndex = imageViewPager.getCurrentItem();
+            if (currentIndex >= 0 && currentIndex < imageViewPagerAdapter.getCount()) {
+                onImageChangeListener.onImageChanged(imageViewPagerAdapter.getImageBean(currentIndex));
+            }
+        }
     }
 
     @Override

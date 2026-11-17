@@ -7,6 +7,11 @@ import ch.want.imagecompare.data.ImageBean;
 import ch.want.imagecompare.ui.compareimages.PanAndZoomState;
 
 public interface ImageDetailView {
+
+    interface OnImageChangeListener {
+        void onImageChanged(ImageBean image);
+    }
+
     void notifyDataSetChanged();
 
     void setCurrentIndex(int imageIndex);
@@ -48,4 +53,6 @@ public interface ImageDetailView {
     void setCheckboxStyleDark(boolean isDark);
 
     void setShowExif(boolean showExifDetails);
+
+    void setOnImageChangeListener(OnImageChangeListener listener);
 }

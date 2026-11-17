@@ -73,6 +73,11 @@ public class PhotoViewMediator {
         syncZoomAndPan = true;
     }
 
+    public void setOnImageChangeListener(final ImageDetailView.OnImageChangeListener listener) {
+        topView.setOnImageChangeListener(listener);
+        bottomView.setOnImageChangeListener(listener);
+    }
+
     public boolean isCheckboxesDarkMode() {
         return checkboxesDarkMode;
     }
