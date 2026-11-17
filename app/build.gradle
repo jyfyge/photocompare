@@ -1,5 +1,14 @@
 apply plugin: 'com.android.application'
 
+// versionCode is incremented on every Gradle build and stored in version.properties,
+// so every generated package gets a unique, monotonically increasing number.
+def versionPropertiesFile = rootProject.file("version.properties")
+def versionProperties = new Properties()
+versionProperties.load(new FileInputStream(versionPropertiesFile))
+def buildVersionCode = (versionProperties.getProperty("versionCode").toInteger()) + 1
+versionProperties.setProperty("versionCode", buildVersionCode.toString())
+versionProperties.store(new FileOutputStream(versionPropertiesFile), "Incremented by build.gradle")
+
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
@@ -22,7 +31,7 @@ android {
         applicationId "com.jyfyge.photocompare"
         minSdkVersion 24
         targetSdkVersion 37
-        versionCode 1
+        versionCode buildVersionCode
         versionName '1.0.0'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: 'true'
@@ -33,6 +42,11 @@ android {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.config
+        }
+    }
+    applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach {
+            outputFileName = "photocompare-${variant.versionName}-v${variant.versionCode}.apk"
         }
     }
     compileOptions {
