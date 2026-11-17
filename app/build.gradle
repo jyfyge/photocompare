@@ -18,9 +18,9 @@ android {
     defaultConfig {
         applicationId "ch.want.imagecompare"
         minSdkVersion 24
-        targetSdkVersion 36
-        versionCode 51
-        versionName '1.0.51'
+        targetSdkVersion 37
+        versionCode 52
+        versionName '1.0.52'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: 'true'
         signingConfig signingConfigs.config
