@@ -1,13 +1,39 @@
+import java.security.MessageDigest
+
 apply plugin: 'com.android.application'
 
-// versionCode is incremented on every Gradle build and stored in version.properties,
-// so every generated package gets a unique, monotonically increasing number.
 def versionPropertiesFile = rootProject.file("version.properties")
 def versionProperties = new Properties()
 versionProperties.load(new FileInputStream(versionPropertiesFile))
-def buildVersionCode = (versionProperties.getProperty("versionCode").toInteger()) + 1
-versionProperties.setProperty("versionCode", buildVersionCode.toString())
-versionProperties.store(new FileOutputStream(versionPropertiesFile), "Incremented by build.gradle")
+
+// Fingerprint the files that actually affect the APK: app source/resources/manifest
+// and this build script. README changes alone must not bump the version code.
+def sourceFingerprint = {
+    def digest = MessageDigest.getInstance("SHA-256")
+    fileTree("src/main").sort { it.path }.each { sourceFile ->
+        digest.update(sourceFile.path.getBytes("UTF-8"))
+        digest.update(sourceFile.bytes)
+    }
+    digest.update(file("build.gradle").bytes)
+    return digest.digest().encodeHex().toString()
+}
+
+def apkTaskRequested = gradle.startParameter.taskNames.any { taskName ->
+    taskName == "assemble" || taskName.endsWith(":assemble") ||
+            taskName.endsWith("assembleRelease") || taskName.endsWith("assembleDebug")
+}
+
+def storedVersionCode = versionProperties.getProperty("versionCode").toInteger()
+def storedFingerprint = versionProperties.getProperty("sourceHash", "")
+def currentFingerprint = sourceFingerprint()
+def buildVersionCode = storedVersionCode
+
+if (apkTaskRequested && currentFingerprint != storedFingerprint) {
+    buildVersionCode = storedVersionCode + 1
+    versionProperties.setProperty("versionCode", buildVersionCode.toString())
+    versionProperties.setProperty("sourceHash", currentFingerprint)
+    versionProperties.store(new FileOutputStream(versionPropertiesFile), "Updated by APK build")
+}
 
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
@@ -46,7 +72,7 @@ android {
     }
     applicationVariants.configureEach { variant ->
         variant.outputs.configureEach {
-            outputFileName = "photocompare-${variant.versionName}-v${variant.versionCode}.apk"
+            outputFileName = "photocompare-jyfyge-v${variant.versionName}_${variant.versionCode}-${variant.buildType.name}.apk"
         }
     }
     compileOptions {
@@ -87,4 +113,12 @@ dependencies {
     androidTestImplementation 'androidx.test:rules:1.7.0'
     androidTestImplementation 'org.mockito:mockito-core:5.23.0'
     androidTestUtil 'androidx.test:orchestrator:1.6.1'
+}
+
+tasks.register('printVersionInfo') {
+    doLast {
+        println "versionCode=${storedVersionCode}"
+        println "sourceHash=${currentFingerprint}"
+        println "apkTaskRequested=${apkTaskRequested}"
+    }
 }
