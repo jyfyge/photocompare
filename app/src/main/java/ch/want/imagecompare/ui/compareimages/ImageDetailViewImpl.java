@@ -1,6 +1,7 @@
 package ch.want.imagecompare.ui.compareimages;
 
 import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.util.Log;
 import android.view.View;
@@ -23,6 +24,7 @@ import ch.want.imagecompare.data.Dimension;
 import ch.want.imagecompare.data.ImageBean;
 import ch.want.imagecompare.domain.CrossViewEventHandler;
 import ch.want.imagecompare.domain.ImageDetailView;
+import ch.want.imagecompare.domain.PhotoComparePreferences;
 
 /**
  * This class provides access to one image + details such as exif text, select toggle etc.
@@ -209,6 +211,21 @@ public class ImageDetailViewImpl implements ImageDetailView {
     @Override
     public void refreshExifData() {
         // Only re-read already-cached values; no decoding happens on the UI thread.
+        // Guard against being called before the async gallery load has populated the adapter.
+        if (imageViewPagerAdapter == null || imageViewPagerAdapter.getCount() == 0) {
+            return;
+        }
+        updateExifData();
+    }
+
+    @Override
+    public void setGainMapMode(final boolean enabled) {
+        if (imageViewPagerAdapter == null) {
+            return;
+        }
+        imageViewPagerAdapter.setShowGainMap(enabled);
+        // Re-load through the normal pipeline so zoom/pan and state restoration still apply.
+        imageViewPagerAdapter.reloadCurrentImages();
         updateExifData();
     }
 
@@ -245,6 +262,20 @@ public class ImageDetailViewImpl implements ImageDetailView {
     }
 
     private void updateExifData() {
+        if (imageViewPagerAdapter == null || imageViewPagerAdapter.getCount() == 0) {
+            return;
+        }
+        final boolean showResolution = new PhotoComparePreferences(imageViewPager.getContext()).isShowResolution();
+        if (imageViewPagerAdapter != null && imageViewPagerAdapter.isShowingGainMap()) {
+            final Bitmap gainMap = getCurrentImageBean().getGainMapBitmap();
+            if (gainMap != null) {
+                exifData = String.format(Locale.ENGLISH, "%s [Gain map] %s",//
+                        getCurrentImageBean().getDisplayName(), //
+                        formatImageSize(gainMap.getWidth(), gainMap.getHeight(), showResolution));
+                updateExifTextView(null);
+                return;
+            }
+        }
         try {
             final File imageFile = getCurrentImageBean().getImageFile();
             final ExifInterface exif = new ExifInterface(Objects.requireNonNull(getCurrentImageBean().getFileUri().getPath()));
@@ -254,21 +285,31 @@ public class ImageDetailViewImpl implements ImageDetailView {
                 imageWidth = exif.getAttributeInt(ExifInterface.TAG_PIXEL_X_DIMENSION, 0);
                 imageHeight = exif.getAttributeInt(ExifInterface.TAG_PIXEL_Y_DIMENSION, 0);
             }
-            final double megaPixel = (double) imageWidth * imageHeight / 1_000_000d;
             final Boolean ultraHdr = getCurrentImageBean().getUltraHdr();
             final String hdrTag = Boolean.TRUE.equals(ultraHdr) ? " [Ultra HDR]" : "";
-            exifData = String.format(Locale.ENGLISH, "%s: ƒ/%.2f %s %.0fmm ISO %s %.1fMP%s",//
+            exifData = String.format(Locale.ENGLISH, "%s: ƒ/%.2f %s %.0fmm ISO %s %s%s",//
                     imageFile.getName(), //
                     exif.getAttributeDouble(ExifInterface.TAG_F_NUMBER, 0d), //
                     formatShutterSpeed(exif.getAttributeDouble(ExifInterface.TAG_EXPOSURE_TIME, 0d)), //
                     exif.getAttributeDouble(ExifInterface.TAG_FOCAL_LENGTH, 0d), //
                     exif.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY),//
-                    megaPixel, //
+                    formatImageSize(imageWidth, imageHeight, showResolution), //
                     hdrTag);
         } catch (final IOException e) {
             exifData = e.getMessage();
         }
         updateExifTextView(null);
+    }
+
+    /**
+     * Format image dimensions either as megapixels or as a resolution using the multiplication
+     * sign (never the letter x), per the user's setting.
+     */
+    private static String formatImageSize(final int width, final int height, final boolean showResolution) {
+        if (showResolution) {
+            return String.format(Locale.ENGLISH, "%d\u00D7%d", width, height);
+        }
+        return String.format(Locale.ENGLISH, "%.1fMP", (double) width * height / 1_000_000d);
     }
 
     private void updateExifTextView(final Float newScale) {

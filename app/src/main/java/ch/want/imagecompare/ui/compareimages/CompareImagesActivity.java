@@ -5,7 +5,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -37,6 +39,12 @@ public class CompareImagesActivity extends AppCompatActivity {
     private PhotoViewMediator photoViewMediator;
     private SwitchMaterial syncToggle;
     private ExecutorService imageLoaderExecutor;
+    private Button gainMapButton;
+    private Button hdrButton;
+    // UI state (all accessed on the main thread)
+    private boolean gainMapVisible = false;
+    private boolean hdrEnabled = true;
+    private boolean hasUltraHdrImage = false;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -46,6 +54,14 @@ public class CompareImagesActivity extends AppCompatActivity {
         photoViewMediator.setOnImageChangeListener(image -> updateHdrColorMode());
         initInitialState(savedInstanceState);
         initToolbar();
+        initUltraHdrButtons();
+    }
+
+    private void initUltraHdrButtons() {
+        gainMapButton = findViewById(R.id.toggleGainMap);
+        hdrButton = findViewById(R.id.toggleHdr);
+        gainMapButton.setOnClickListener(v -> onToggleGainMap());
+        hdrButton.setOnClickListener(v -> onToggleHdr());
     }
 
     private PhotoViewMediator buildPhotoViewMediator() {
@@ -96,10 +112,9 @@ public class CompareImagesActivity extends AppCompatActivity {
     }
 
     /**
-     * Enable HDR rendering while at least one of the compared images is an Ultra HDR image.
-     * Gain map detection decodes a small sample only, and always runs off the UI thread.
-     * The per-image result is cached in {@link ImageBean} so the info text can show the
-     * Ultra HDR label without ever decoding on the UI thread.
+     * Detect whether either compared image is Ultra HDR, then enable HDR rendering and expose
+     * the two Ultra HDR control buttons. Gain map detection decodes a small sample only and
+     * always runs off the UI thread. Results are cached in {@link ImageBean}.
      */
     private void updateHdrColorMode() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE
@@ -114,13 +129,88 @@ public class CompareImagesActivity extends AppCompatActivity {
             final boolean bottomHdr = hasGainMapAt(images, bottomIndex);
             runOnUiThread(() -> {
                 if (!isFinishing() && !isDestroyed()) {
-                    UltraHdrSupport.applyWindowColorMode(this, topHdr || bottomHdr);
+                    hasUltraHdrImage = topHdr || bottomHdr;
+                    applyHdrWindowMode();
+                    updateUltraHdrButtons();
                     // The detection result just became available; refresh the parameter text
                     // so the [Ultra HDR] label appears. Reading the cache is cheap.
                     photoViewMediator.refreshExifData();
+                    // If gain-map mode is active, extract maps for the newly shown images.
+                    if (gainMapVisible) {
+                        loadGainMapsForCurrentImages();
+                    }
                 }
             });
         });
+    }
+
+    private void applyHdrWindowMode() {
+        UltraHdrSupport.applyWindowColorMode(this, hdrEnabled && hasUltraHdrImage);
+    }
+
+    private void updateUltraHdrButtons() {
+        final int visibility = hasUltraHdrImage ? android.view.View.VISIBLE : android.view.View.GONE;
+        gainMapButton.setVisibility(visibility);
+        hdrButton.setVisibility(visibility);
+        if (!hasUltraHdrImage && gainMapVisible) {
+            // No longer comparing Ultra HDR images: switch back to the original photo.
+            gainMapVisible = false;
+            photoViewMediator.setGainMapMode(false);
+        }
+    }
+
+    private void onToggleHdr() {
+        hdrEnabled = !hdrEnabled;
+        hdrButton.setText(hdrEnabled ? R.string.toggle_hdr : R.string.toggle_hdr_off);
+        applyHdrWindowMode();
+    }
+
+    private void onToggleGainMap() {
+        gainMapVisible = !gainMapVisible;
+        if (gainMapVisible) {
+            loadGainMapsForCurrentImages();
+        } else {
+            photoViewMediator.setGainMapMode(false);
+        }
+    }
+
+    /**
+     * Extract gain maps off the UI thread, cache them on the ImageBeans, then switch the normal
+     * image pipeline to gain-map mode. Zoom/pan/parameter display keep working because the gain
+     * map is loaded as a normal ImageSource rather than an overlay.
+     */
+    private void loadGainMapsForCurrentImages() {
+        if (imageLoaderExecutor == null || imageLoaderExecutor.isShutdown()) {
+            return;
+        }
+        final List<ImageBean> images = photoViewMediator.getGalleryImageList();
+        final int topIndex = photoViewMediator.getTopIndex();
+        final int bottomIndex = photoViewMediator.getBottomIndex();
+        imageLoaderExecutor.execute(() -> {
+            final android.graphics.Bitmap topGain = gainMapAt(images, topIndex);
+            final android.graphics.Bitmap bottomGain = gainMapAt(images, bottomIndex);
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed() && gainMapVisible) {
+                    if (topGain == null && bottomGain == null) {
+                        Toast.makeText(this, R.string.gainmap_unavailable, Toast.LENGTH_SHORT).show();
+                        gainMapVisible = false;
+                    } else {
+                        photoViewMediator.setGainMapMode(true);
+                    }
+                }
+            });
+        });
+    }
+
+    private static android.graphics.Bitmap gainMapAt(final List<ImageBean> images, final int index) {
+        if (index < 0 || index >= images.size()) {
+            return null;
+        }
+        final ImageBean imageBean = images.get(index);
+        if (imageBean.getGainMapBitmap() == null && Boolean.TRUE.equals(imageBean.getUltraHdr())) {
+            imageBean.setGainMapBitmap(UltraHdrSupport.extractGainMap(imageBean.getImageFile()));
+        }
+        return imageBean.getGainMapBitmap();
     }
 
     private static boolean hasGainMapAt(final List<ImageBean> images, final int index) {

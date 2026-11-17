@@ -41,6 +41,9 @@
         <activity
             android:name=".ui.imageselection.SelectedImagesActivity"
             android:parentActivityName=".ui.compareimages.CompareImagesActivity" />
+        <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:parentActivityName=".ui.listfolders.SelectImagePoolActivity" />
     </application>
 
 </manifest>

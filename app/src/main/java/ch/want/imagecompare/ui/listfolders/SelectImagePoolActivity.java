@@ -82,6 +82,7 @@ public class SelectImagePoolActivity extends AppCompatActivity implements SwipeR
         initContentViews();
         initDateSelection(savedInstanceState);
         initMediaAccessManagement();
+        initSettingsButton();
         onRefresh();
         final Toolbar toolbar = findViewById(R.id.my_toolbar);
         setSupportActionBar(toolbar);
@@ -108,6 +109,14 @@ public class SelectImagePoolActivity extends AppCompatActivity implements SwipeR
         setContentView(R.layout.activity_select_imagepool);
         final SwipeRefreshLayout swipeLayout = findViewById(R.id.swipe_container);
         swipeLayout.setOnRefreshListener(this);
+    }
+
+    private void initSettingsButton() {
+        final View settingsButton = findViewById(R.id.settingsButton);
+        if (settingsButton != null) {
+            settingsButton.setOnClickListener(v ->
+                    startActivity(new Intent(this, ch.want.imagecompare.ui.settings.SettingsActivity.class)));
+        }
     }
 
     private void initMediaAccessManagement() {

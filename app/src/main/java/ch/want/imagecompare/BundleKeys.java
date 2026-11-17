@@ -11,6 +11,10 @@ public class BundleKeys {
     public static final String KEY_FILENAMES_FOR_SORT = "ch.want.imagecompare.sort_by_filename";
     public static final String KEY_SHOW_EXIF_DETAILS = "ch.want.imagecompare.show_exif_details";
     public static final String KEY_CHECKBOX_STYLE_DARK = "ch.want.imagecompare.checkbox_style_dark";
+    /**
+     * Image size display format: false = megapixels, true = pixel resolution (WxH).
+     */
+    public static final String KEY_SHOW_RESOLUTION = "ch.want.imagecompare.show_resolution";
     public static final String KEY_SELECTION_COLLECTION = "ch.want.imagecompare.selection_collection";
     public static final String KEY_TOPIMAGE_INDEX = "ch.want.imagecompare.topimage_index";
     public static final String KEY_BOTTOMIMAGE_INDEX = "ch.want.imagecompare.bottomimage_index";

@@ -43,6 +43,28 @@
             android:text="@string/sync_state"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/toggleGainMap"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:minWidth="0dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:textSize="12sp"
+            android:text="@string/toggle_gainmap"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/toggleHdr"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:minWidth="0dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:textSize="12sp"
+            android:text="@string/toggle_hdr"
+            android:visibility="gone" />
     </LinearLayout>
 
     <include

@@ -210,5 +210,9 @@ public class PhotoViewMediatorTest {
         @Override
         public void refreshExifData() {
         }
+
+        @Override
+        public void setGainMapMode(final boolean enabled) {
+        }
     }
 }

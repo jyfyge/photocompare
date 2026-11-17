@@ -61,4 +61,10 @@ public interface ImageDetailView {
      * Safe to call from the UI thread; implementations must not perform heavy work.
      */
     void refreshExifData();
+
+    /**
+     * Switch this view between showing the original photo and its Ultra HDR gain map.
+     * Both are displayed through the normal image pipeline so zoom/pan still work.
+     */
+    void setGainMapMode(boolean enabled);
 }

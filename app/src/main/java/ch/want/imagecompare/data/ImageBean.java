@@ -44,6 +44,12 @@ public class ImageBean implements Parcelable {
      */
     private Boolean ultraHdr;
 
+    /**
+     * Runtime-only cache of the extracted gain map bitmap (null until requested).
+     * Not persisted in Parcel; recomputed on demand in the compare view.
+     */
+    private android.graphics.Bitmap gainMapBitmap;
+
     public ImageBean(final String displayName, final Uri fileUri) {
         this.displayName = displayName;
         lastModified = 0;
@@ -166,6 +172,14 @@ public class ImageBean implements Parcelable {
 
     public void setUltraHdr(final boolean ultraHdr) {
         this.ultraHdr = ultraHdr;
+    }
+
+    public android.graphics.Bitmap getGainMapBitmap() {
+        return gainMapBitmap;
+    }
+
+    public void setGainMapBitmap(final android.graphics.Bitmap gainMapBitmap) {
+        this.gainMapBitmap = gainMapBitmap;
     }
 
     @Override

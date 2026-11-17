@@ -13,7 +13,11 @@ public class PhotoComparePreferences {
     private final SharedPreferences preferences;
 
     public PhotoComparePreferences(final Activity activity) {
-        preferences = activity.getSharedPreferences(BundleKeys.SHARED_PREFERENCES, Activity.MODE_PRIVATE);
+        this((android.content.Context) activity);
+    }
+
+    public PhotoComparePreferences(final android.content.Context context) {
+        preferences = context.getSharedPreferences(BundleKeys.SHARED_PREFERENCES, android.content.Context.MODE_PRIVATE);
     }
 
     public PhotoComparePreferences setSortNewestFirst(final boolean newValue) {
@@ -50,6 +54,15 @@ public class PhotoComparePreferences {
 
     boolean isCheckboxStyleDark() {
         return preferences.getBoolean(BundleKeys.KEY_CHECKBOX_STYLE_DARK, true);
+    }
+
+    public PhotoComparePreferences setShowResolution(final boolean newValue) {
+        setBoolean(BundleKeys.KEY_SHOW_RESOLUTION, newValue);
+        return this;
+    }
+
+    public boolean isShowResolution() {
+        return preferences.getBoolean(BundleKeys.KEY_SHOW_RESOLUTION, false);
     }
 
     private void setBoolean(final String key, final boolean newValue) {

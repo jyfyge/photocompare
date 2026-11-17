@@ -39,6 +39,9 @@ class ImagePagerAdapter extends PagerAdapter {
     private final ArrayList<ImageBean> galleryImageList;
     private final ConcurrentMap<Integer, SubsamplingScaleImageView> highResPositions = new ConcurrentHashMap<>();
     private Integer futureHighResIndex;
+    // When true, pages display the Ultra HDR gain map bitmap instead of the original photo.
+    // Both go through the same SSIV load path, so zoom/pan/state restoration keep working.
+    private boolean showGainMap = false;
 
     static {
         // This fixes https://github.com/sniederb/photocompare/issues/6.
@@ -62,6 +65,14 @@ class ImagePagerAdapter extends PagerAdapter {
     void setZoomPanRestoreHandler(final PanAndZoomStateHolder zoomPanHandler) {
         this.zoomPanHandler = zoomPanHandler;
         imageViewListener.addListener(zoomPanHandler);
+    }
+
+    void setShowGainMap(final boolean showGainMap) {
+        this.showGainMap = showGainMap;
+    }
+
+    boolean isShowingGainMap() {
+        return showGainMap;
     }
 
     @Override
@@ -108,17 +119,37 @@ class ImagePagerAdapter extends PagerAdapter {
         }
     }
 
+    /**
+     * Re-load the current images so the newly selected source (photo vs. gain map) is applied
+     * while preserving the current zoom/pan state from the memorizer.
+     */
+    void reloadCurrentImages() {
+        for (final Map.Entry<Integer, SubsamplingScaleImageView> entry : highResPositions.entrySet()) {
+            loadHighResImage(entry.getValue(), entry.getKey());
+        }
+    }
+
+    private ImageSource imageSourceFor(final int position) {
+        final ImageBean imageBean = galleryImageList.get(position);
+        if (showGainMap && imageBean.getGainMapBitmap() != null) {
+            // cachedBitmap() tells SSIV not to recycle the bitmap when swapping pages. The
+            // bitmap is owned by ImageBean and reused, so recycling it would crash on redraw.
+            return ImageSource.cachedBitmap(imageBean.getGainMapBitmap());
+        }
+        return ImageSource.uri(imageBean.getFileUri());
+    }
+
     private void loadLowResImage(final SubsamplingScaleImageView photoView, final int position) {
         photoView.setOnImageEventListener(null);
         photoView.setOnStateChangedListener(null);
-        photoView.setImage(ImageSource.uri(galleryImageList.get(position).getFileUri()));
+        photoView.setImage(imageSourceFor(position));
     }
 
     private void loadHighResImage(final SubsamplingScaleImageView photoView, final int position) {
         photoView.setOnImageEventListener(imageViewListener);
         photoView.setOnStateChangedListener(imageViewListener);
         ImageViewState state = zoomPanHandler.getImageViewState().orElse(null);
-        photoView.setImage(ImageSource.uri(galleryImageList.get(position).getFileUri()), state);
+        photoView.setImage(imageSourceFor(position), state);
         highResPositions.put(position, photoView);
     }
 

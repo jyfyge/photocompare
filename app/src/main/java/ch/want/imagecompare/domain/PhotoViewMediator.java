@@ -87,6 +87,11 @@ public class PhotoViewMediator {
         bottomView.refreshExifData();
     }
 
+    public void setGainMapMode(final boolean enabled) {
+        topView.setGainMapMode(enabled);
+        bottomView.setGainMapMode(enabled);
+    }
+
     public boolean isCheckboxesDarkMode() {
         return checkboxesDarkMode;
     }
