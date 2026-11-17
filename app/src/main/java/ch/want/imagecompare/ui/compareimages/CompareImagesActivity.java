@@ -15,6 +15,8 @@ import com.google.android.material.switchmaterial.SwitchMaterial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import ch.want.imagecompare.BundleKeys;
 import ch.want.imagecompare.R;
@@ -32,6 +34,7 @@ public class CompareImagesActivity extends AppCompatActivity {
     private FileImageMediaResolver mediaResolver;
     private PhotoViewMediator photoViewMediator;
     private SwitchMaterial syncToggle;
+    private ExecutorService imageLoaderExecutor;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -68,18 +71,41 @@ public class CompareImagesActivity extends AppCompatActivity {
             bottomIndex = savedInstanceState.getInt(BundleKeys.KEY_BOTTOMIMAGE_INDEX, PhotoViewMediator.NO_VALID_IMAGE_INDEX);
         }
         mediaResolver = FileImageMediaResolver.create(this, savedInstanceState);
-        final List<ImageBean> allImageBeans = mediaResolver.execute();
-        if (selectedBeansFromState != null && !selectedBeansFromState.isEmpty()) {
-            ImageBean.copySelectedState(selectedBeansFromState, allImageBeans);
+        // Querying MediaStore checks File.exists() for every image. On large libraries this can
+        // take several seconds and must not run on the main thread, otherwise the system kills
+        // the app with an ANR before the compare view ever becomes responsive.
+        imageLoaderExecutor = Executors.newSingleThreadExecutor();
+        imageLoaderExecutor.execute(() -> {
+            final List<ImageBean> allImageBeans = mediaResolver.execute();
+            if (selectedBeansFromState != null && !selectedBeansFromState.isEmpty()) {
+                ImageBean.copySelectedState(selectedBeansFromState, allImageBeans);
+            }
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                photoViewMediator.initGalleryImageList(allImageBeans, topImageIndex, bottomIndex);
+                syncToggle.setChecked(true);
+                Optional.ofNullable(getSupportActionBar()).ifPresent(actionBar -> actionBar.setTitle(R.string.app_name));
+            });
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (imageLoaderExecutor != null) {
+            imageLoaderExecutor.shutdownNow();
         }
-        photoViewMediator.initGalleryImageList(allImageBeans, topImageIndex, bottomIndex);
-        syncToggle.setChecked(true);
+        super.onDestroy();
     }
 
     private void initToolbar() {
         final Toolbar toolbar = findViewById(R.id.my_toolbar);
         setSupportActionBar(toolbar);
-        Optional.ofNullable(getSupportActionBar()).ifPresent(actionBar -> actionBar.setDisplayHomeAsUpEnabled(true));
+        Optional.ofNullable(getSupportActionBar()).ifPresent(actionBar -> {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setTitle(R.string.action_loading_images);
+        });
     }
 
     @Override

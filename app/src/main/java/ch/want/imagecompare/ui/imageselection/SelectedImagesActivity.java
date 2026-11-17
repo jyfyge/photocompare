@@ -23,6 +23,8 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import ch.want.imagecompare.BundleKeys;
 import ch.want.imagecompare.R;
@@ -38,6 +40,7 @@ public class SelectedImagesActivity extends AppCompatActivity {
     private final ArrayList<ImageBean> galleryImageList = new ArrayList<>();
     private int topImageIndexForParentActivity;
     private int bottomImageIndexForParentActivity;
+    private ExecutorService imageLoaderExecutor;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -71,15 +74,33 @@ public class SelectedImagesActivity extends AppCompatActivity {
             bottomImageIndexForParentActivity = savedInstanceState.getInt(BundleKeys.KEY_BOTTOMIMAGE_INDEX, PhotoViewMediator.NO_VALID_IMAGE_INDEX);
         }
         mediaResolver = FileImageMediaResolver.create(this, savedInstanceState);
-        loadImagesForCurrentImageFolder();
-        if (selectedBeansFromState != null && !selectedBeansFromState.isEmpty()) {
-            ImageBean.copySelectedState(selectedBeansFromState, galleryImageList);
-        }
+        // The MediaStore query calls File.exists() for every image and is too slow for the
+        // main thread on large libraries (leads to an ANR and the app being killed).
+        imageLoaderExecutor = Executors.newSingleThreadExecutor();
+        imageLoaderExecutor.execute(() -> {
+            final ArrayList<ImageBean> images = new ArrayList<>(mediaResolver.execute());
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                galleryImageList.clear();
+                galleryImageList.addAll(images);
+                if (selectedBeansFromState != null && !selectedBeansFromState.isEmpty()) {
+                    ImageBean.copySelectedState(selectedBeansFromState, galleryImageList);
+                }
+                if (adapter != null) {
+                    adapter.notifyDataSetChanged();
+                }
+            });
+        });
     }
 
-    private void loadImagesForCurrentImageFolder() {
-        galleryImageList.clear();
-        galleryImageList.addAll(mediaResolver.execute());
+    @Override
+    protected void onDestroy() {
+        if (imageLoaderExecutor != null) {
+            imageLoaderExecutor.shutdownNow();
+        }
+        super.onDestroy();
     }
 
     private void initToolbar() {

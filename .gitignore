@@ -20,6 +20,7 @@ build/
 local.properties
 keystore.properties
 keystore.jks
+*.jks
 
 # Log Files
 *.log
