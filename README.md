@@ -1,3 +1,14 @@
+# Photo Compare — jyfyge fork
+
+This is a modified fork of [sniederb/photocompare](https://github.com/sniederb/photocompare).
+Changes made by the fork maintainer (jyfyge): fix an ANR when opening the compare view on large
+photo libraries, target Android 17 (API 37), and add Ultra HDR image support.
+
+Licensed under the Non-Profit Open Software License version 3.0; see `LICENSE.txt`. The original
+copyright, patent, trademark and licensing notices are retained in the source code. This notice
+serves as the attribution notice required by section 6 of the license: the Original Work has been
+modified in this fork.
+
 ## Basic structure
 
 ### ListAllImageFoldersActivity

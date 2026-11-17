@@ -11,16 +11,19 @@ android {
             keyPassword keystoreProperties['keyPassword']
             storeFile file(keystoreProperties['storeFile'])
             storePassword keystoreProperties['storePassword']
+            enableV1Signing false
+            enableV2Signing true
+            enableV3Signing true
         }
     }
     namespace 'ch.want.imagecompare'
     compileSdk 37
     defaultConfig {
-        applicationId "ch.want.imagecompare"
+        applicationId "com.jyfyge.photocompare"
         minSdkVersion 24
         targetSdkVersion 37
-        versionCode 53
-        versionName '1.0.53'
+        versionCode 1
+        versionName '1.0.0'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: 'true'
         signingConfig signingConfigs.config
