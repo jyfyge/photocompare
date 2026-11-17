@@ -242,9 +242,14 @@ public class ImageDetailViewImpl implements ImageDetailView {
         try {
             final File imageFile = getCurrentImageBean().getImageFile();
             final ExifInterface exif = new ExifInterface(Objects.requireNonNull(getCurrentImageBean().getFileUri().getPath()));
-            final long megaPixel = exif.getAttributeInt(ExifInterface.TAG_PIXEL_X_DIMENSION, 0) * (long) exif.getAttributeInt(ExifInterface.TAG_PIXEL_Y_DIMENSION, 0) / //
-                    (1000 * 1000);
-            exifData = String.format(Locale.ENGLISH, "%s: ƒ/%.1f %s %.0fmm ISO %s %dMP",//
+            int imageWidth = exif.getAttributeInt(ExifInterface.TAG_IMAGE_WIDTH, 0);
+            int imageHeight = exif.getAttributeInt(ExifInterface.TAG_IMAGE_LENGTH, 0);
+            if (imageWidth <= 0 || imageHeight <= 0) {
+                imageWidth = exif.getAttributeInt(ExifInterface.TAG_PIXEL_X_DIMENSION, 0);
+                imageHeight = exif.getAttributeInt(ExifInterface.TAG_PIXEL_Y_DIMENSION, 0);
+            }
+            final double megaPixel = (double) imageWidth * imageHeight / 1_000_000d;
+            exifData = String.format(Locale.ENGLISH, "%s: ƒ/%.2f %s %.0fmm ISO %s %.1fMP",//
                     imageFile.getName(), //
                     exif.getAttributeDouble(ExifInterface.TAG_F_NUMBER, 0d), //
                     formatShutterSpeed(exif.getAttributeDouble(ExifInterface.TAG_EXPOSURE_TIME, 0d)), //
